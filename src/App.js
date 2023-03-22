@@ -1,23 +1,44 @@
-import logo from './logo.svg';
+import React, { Suspense, useMemo } from 'react';
 import './App.css';
+import { Canvas } from '@react-three/fiber';
+import { Debug, Physics } from '@react-three/rapier';
+import { Controllers, VRButton, XR } from '@react-three/xr';
+import { Environment, KeyboardControls } from '@react-three/drei';
+import { ACESFilmicToneMapping, sRGBEncoding } from 'three';
+import Virtual from './components/Virtual';
 
 function App() {
+  // Mapping keyboard keys to actions
+  const keyMap = useMemo(() => [
+    {name: 'forward', keys: ['w', 'ArrowUp']},
+    {name: 'backward', keys: ['s', 'ArrowDown']},
+    {name: 'left', keys: ['a', 'ArrowLeft']},
+    {name: 'right', keys: ['d', 'ArrowRight']},
+  ], []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div id='canvas-container'>
+      <VRButton />
+      <Canvas
+        shadows='soft' legacy
+        camera={{ position: [0, 2, 4] }}
+        gl={{ toneMappingExposure: 1, toneMapping: ACESFilmicToneMapping, outputEncoding: sRGBEncoding, antialias: true, alpha: true }}
+      >
+
+        <XR>
+          <Environment files='/model/HDR/forgotten_miniland_4k.hdr' background />
+          <Controllers rayMaterial={{color: 'blue'}} />
+          <Suspense fallback={null}>
+            <Physics colliders={false}>
+              <Debug />
+              <KeyboardControls map={keyMap}>
+                <Virtual />
+              </KeyboardControls>
+            </Physics>
+          </Suspense>
+        </XR>
+
+      </Canvas>
     </div>
   );
 }
