@@ -11,7 +11,7 @@ export function Lab(props) {
   const { nodes } = useGLTF('/model/Laboratory-transformed.glb')
   return (
     <group {...props} dispose={null} name='laboratory'>
-      <RigidBody colliders='trimesh' type='fixed'>
+      <RigidBody colliders='trimesh' type='fixed' friction={0.05}>
         <group name='Scene'>
           <mesh castShadow receiveShadow geometry={nodes.Cube003.geometry}>
             <meshStandardMaterial attach="material" color='whitesmoke' />

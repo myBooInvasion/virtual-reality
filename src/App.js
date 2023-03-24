@@ -20,8 +20,8 @@ function App() {
     <div id='canvas-container'>
       <VRButton />
       <Canvas
-        shadows='soft' legacy
-        camera={{ position: [0, 2, 4] }}
+        shadows='soft'
+        camera={{ position: [0, 2, 4], near: 0.01, far: 1000 }}
         gl={{ toneMappingExposure: 1, toneMapping: ACESFilmicToneMapping, outputEncoding: sRGBEncoding, antialias: true, alpha: true }}
       >
 

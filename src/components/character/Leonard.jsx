@@ -5,10 +5,10 @@ Command: npx gltfjsx@6.1.2 Leo.glb --transform --shadows --keepnames
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useGLTF, useAnimations, useKeyboardControls } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useXR } from '@react-three/xr';
 import { Vector2, Vector3 } from 'three';
-import { BallCollider, RigidBody } from '@react-three/rapier';
+import { BallCollider, RigidBody, quat, vec3 } from '@react-three/rapier';
 
 const vectorVelocity = new Vector3();
 const stickArea = new Vector2();
@@ -26,13 +26,12 @@ export function LeoVR(props) {
    const { controllers, session } = useXR();
 
    // Three fiber hooks
-   const { camera } = useThree();
 
    // Local state
    const [pose, setPose] = useState('Idle');
 
    // Keyboard controls hooks
-   const [, getKey] = useKeyboardControls();
+   const [subKey, getKey] = useKeyboardControls();
 
    // EFFECT
    useEffect(() => {
@@ -43,20 +42,35 @@ export function LeoVR(props) {
       }
    }, [pose, actions]);
    useEffect(() => {
-      if (session === null) {
-         camera.position.set(0, 2, 4);
-      }
-      console.log('session call');
-   }, [session, camera]);
+      return subKey(state => state, (pressed) => {
+         if (pressed.forward) {
+            setPose('Walking');
+         }
+         if (pressed.backward) {
+            setPose('Backward');
+         }
+         if (pressed.left) {
+            setPose('Left');
+         }
+         if (pressed.right) {
+            setPose('Right');
+         }
+         if (Object.values(pressed).every(key => !key)) {
+            setPose('Idle');
+         }
+      });
+   }, [subKey]);
 
    // create useframe
    useFrame((state, delta) => {
+      const camera = state.camera;
+      const offset = new Vector3(0, 1.7, 1.3);
       if (session) {
          if (controllers.length !== 0) {
             movementCharacter();
          }
       } else {
-         movementCharacterFPS();
+         movementCharacterFPS(camera, offset);
       }
    });
 
@@ -86,13 +100,21 @@ export function LeoVR(props) {
    }
 
    // movement character in FPS mode
-   const movementCharacterFPS = () => {
+   const movementCharacterFPS = (camera, offset) => {
       const { forward, backward, left, right } = getKey();
+      const cameraRotation = camera.quaternion;
       const originalVelocity = leonard.current.linvel();
+      const originalRotation = leonard.current.rotation();
+      const leoPosition = leonard.current.translation();
 
+      offset.applyQuaternion(quat({...originalRotation}));
+      offset.add(vec3({...leoPosition}));
       vectorVelocity.set(right - left, 0, backward - forward).multiplyScalar(1);
-
-      leonard.current.setLinvel({ x: vectorVelocity.x, y: originalVelocity.y, z: vectorVelocity.z }, true);
+      vectorVelocity.applyQuaternion(quat({...originalRotation}))
+      
+      camera.position.copy(offset);
+      leonard.current.setRotation(quat({x: originalRotation.x, y: cameraRotation.y, z: originalRotation.z, w: cameraRotation.w}), true);
+      leonard.current.setLinvel(vec3({ x: vectorVelocity.x, y: originalVelocity.y, z: vectorVelocity.z }), true);
    }
 
    return (
@@ -109,7 +131,7 @@ export function LeoVR(props) {
                   <skinnedMesh castShadow name="Ch31_Shoes" geometry={nodes.Ch31_Shoes.geometry} material={materials.Ch31_body} skeleton={nodes.Ch31_Shoes.skeleton} />
                   <skinnedMesh castShadow name="Ch31_Sweater" geometry={nodes.Ch31_Sweater.geometry} material={materials.Ch31_body} skeleton={nodes.Ch31_Sweater.skeleton} />
                </group>
-               <BallCollider mass={70} args={[0.2]} position={[0, 0.198, 0]} />
+               <BallCollider mass={70} args={[0.2]} position={[0, 0.198, 0]} friction={0.01} />
             </RigidBody>
          </group>
       </group>
